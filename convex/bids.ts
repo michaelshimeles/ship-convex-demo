@@ -326,6 +326,156 @@ export const getItemPriority = query({
 })
 
 /**
+ * Get user's portfolio stats for profile page
+ */
+export const getPortfolioStats = query({
+  args: {},
+  returns: v.object({
+    balance: v.number(),
+    totalInvested: v.number(),
+    activeBids: v.array(
+      v.object({
+        _id: v.id('bids'),
+        amount: v.number(),
+        item: v.object({
+          _id: v.id('items'),
+          number: v.number(),
+          title: v.string(),
+          state: v.string(),
+        }),
+      }),
+    ),
+    completedBids: v.array(
+      v.object({
+        _id: v.id('bids'),
+        amount: v.number(),
+        item: v.object({
+          _id: v.id('items'),
+          number: v.number(),
+          title: v.string(),
+          completedAt: v.optional(v.number()),
+        }),
+      }),
+    ),
+    cancelledBids: v.array(
+      v.object({
+        _id: v.id('bids'),
+        amount: v.number(),
+        item: v.object({
+          _id: v.id('items'),
+          number: v.number(),
+          title: v.string(),
+        }),
+      }),
+    ),
+  }),
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) {
+      return {
+        balance: 0,
+        totalInvested: 0,
+        activeBids: [],
+        completedBids: [],
+        cancelledBids: [],
+      }
+    }
+
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_identifier', (q) => q.eq('identifier', identity.subject))
+      .unique()
+
+    if (!user) {
+      return {
+        balance: 0,
+        totalInvested: 0,
+        activeBids: [],
+        completedBids: [],
+        cancelledBids: [],
+      }
+    }
+
+    const bids = await ctx.db
+      .query('bids')
+      .withIndex('by_user', (q) => q.eq('userId', user._id))
+      .collect()
+
+    const activeBids: Array<{
+      _id: Id<'bids'>
+      amount: number
+      item: { _id: Id<'items'>; number: number; title: string; state: string }
+    }> = []
+
+    const completedBids: Array<{
+      _id: Id<'bids'>
+      amount: number
+      item: { _id: Id<'items'>; number: number; title: string; completedAt?: number }
+    }> = []
+
+    const cancelledBids: Array<{
+      _id: Id<'bids'>
+      amount: number
+      item: { _id: Id<'items'>; number: number; title: string }
+    }> = []
+
+    let totalInvested = 0
+
+    for (const bid of bids) {
+      const item = await ctx.db.get(bid.itemId)
+      if (!item) continue
+
+      if (item.state === 'completed') {
+        completedBids.push({
+          _id: bid._id,
+          amount: bid.amount,
+          item: {
+            _id: item._id,
+            number: item.number,
+            title: item.title,
+            completedAt: item.completedAt,
+          },
+        })
+      } else if (item.state === 'cancelled') {
+        cancelledBids.push({
+          _id: bid._id,
+          amount: bid.amount,
+          item: {
+            _id: item._id,
+            number: item.number,
+            title: item.title,
+          },
+        })
+      } else {
+        activeBids.push({
+          _id: bid._id,
+          amount: bid.amount,
+          item: {
+            _id: item._id,
+            number: item.number,
+            title: item.title,
+            state: item.state,
+          },
+        })
+        totalInvested += bid.amount
+      }
+    }
+
+    // Sort by amount descending
+    activeBids.sort((a, b) => b.amount - a.amount)
+    completedBids.sort((a, b) => (b.item.completedAt ?? 0) - (a.item.completedAt ?? 0))
+
+    return {
+      balance: user.chips ?? 100,
+      totalInvested,
+      activeBids,
+      completedBids,
+      cancelledBids,
+    }
+  },
+})
+
+/**
  * Get items sorted by priority
  */
 export const getItemsByPriority = query({

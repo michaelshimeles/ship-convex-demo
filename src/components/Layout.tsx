@@ -10,6 +10,7 @@ interface LayoutProps {
     email?: string | null;
     pictureUrl?: string | null;
     chips?: number;
+    role?: 'admin' | 'user';
   } | null;
   isLoading?: boolean;
 }
@@ -18,7 +19,7 @@ export function Layout({ children, user, isLoading }: LayoutProps) {
   return (
     <div className="min-h-screen bg-[#fafafa]">
       <Navbar user={user} isLoading={isLoading} />
-      <main className="pt-14">{children}</main>
+      <main className="pt-14 min-h-[calc(100vh-3.5rem)]">{children}</main>
     </div>
   );
 }
@@ -32,12 +33,14 @@ function Navbar({
     email?: string | null;
     pictureUrl?: string | null;
     chips?: number;
+    role?: 'admin' | 'user';
   } | null;
   isLoading?: boolean;
 }) {
   const location = useLocation();
 
   const isActive = (path: string) => location.pathname === path;
+  const isAdmin = user?.role === 'admin';
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 h-14 border-b border-neutral-200 bg-white">
@@ -62,12 +65,14 @@ function Navbar({
             <NavLink href="/changelog" active={isActive('/changelog') || location.pathname.startsWith('/changelog/')}>
               Changelog
             </NavLink>
-            <NavLink href="/dashboard" active={isActive('/dashboard')}>
-              Dashboard
-            </NavLink>
             <NavLink href="/profile" active={isActive('/profile')}>
               Profile
             </NavLink>
+            {isAdmin && (
+              <NavLink href="/dashboard" active={isActive('/dashboard')}>
+                Admin
+              </NavLink>
+            )}
           </div>
         </div>
 
@@ -82,13 +87,15 @@ function Navbar({
             <kbd className="ml-4 text-[11px] text-neutral-400 bg-white px-1.5 py-0.5 rounded border border-neutral-200">⌘K</kbd>
           </button>
 
-          {/* Chip balance */}
-          {user && typeof user.chips === 'number' && (
-            <div className="flex items-center gap-1.5 h-8 px-3 bg-amber-50 border border-amber-200 rounded-md">
-              <svg className="w-4 h-4 text-amber-600" fill="currentColor" viewBox="0 0 24 24">
+          {/* Chip balance - fixed width to prevent layout shift */}
+          {user && (
+            <div className="flex items-center gap-1.5 h-8 px-3 bg-amber-50 border border-amber-200 rounded-md min-w-[72px]">
+              <svg className="w-4 h-4 text-amber-600 shrink-0" fill="currentColor" viewBox="0 0 24 24">
                 <circle cx="12" cy="12" r="10" />
               </svg>
-              <span className="text-[13px] font-medium text-amber-700">{user.chips}</span>
+              <span className="text-[13px] font-medium text-amber-700 tabular-nums min-w-[28px] text-right">
+                {user.chips ?? 0}
+              </span>
             </div>
           )}
 
@@ -166,11 +173,13 @@ function ProfileDropdown({
     email?: string | null;
     pictureUrl?: string | null;
     chips?: number;
+    role?: 'admin' | 'user';
   };
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { signOut } = useAuth();
+  const isAdmin = user.role === 'admin';
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -270,21 +279,23 @@ function ProfileDropdown({
               </svg>
               View Profile
             </Link>
-            <Link
-              to="/dashboard"
-              onClick={() => setIsOpen(false)}
-              className="flex items-center gap-3 px-4 py-2 text-[13px] text-neutral-700 hover:bg-neutral-50 transition-colors"
-            >
-              <svg className="w-4 h-4 text-neutral-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
-                />
-              </svg>
-              Dashboard
-            </Link>
+            {isAdmin && (
+              <Link
+                to="/dashboard"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-3 px-4 py-2 text-[13px] text-neutral-700 hover:bg-neutral-50 transition-colors"
+              >
+                <svg className="w-4 h-4 text-neutral-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
+                  />
+                </svg>
+                Admin
+              </Link>
+            )}
           </div>
 
           {/* Sign out */}

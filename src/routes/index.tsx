@@ -16,7 +16,7 @@ function Home() {
   const { data: user } = useSuspenseQuery(convexQuery(api.myFunctions.getUser, {}));
 
   return (
-    <Layout user={user ? { name: user.name, email: user.email, pictureUrl: user.pictureUrl, chips: user.chips } : null}>
+    <Layout user={user ? { name: user.name, email: user.email, pictureUrl: user.pictureUrl, chips: user.chips, role: user.role } : null}>
       <div className="max-w-6xl mx-auto px-6 py-20">
         {/* Hero */}
         <div className="mb-12">

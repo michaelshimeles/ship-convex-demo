@@ -1,8 +1,7 @@
 import { Outlet, createFileRoute, redirect } from '@tanstack/react-router';
 import { getSignInUrl } from '@workos/authkit-tanstack-react-start';
-import { useMutation } from 'convex/react';
+import { convexQuery } from '@convex-dev/react-query';
 import { api } from '../../convex/_generated/api';
-import { useEffect, useRef } from 'react';
 
 export const Route = createFileRoute('/_authenticated')({
   beforeLoad: async ({ context, location }) => {
@@ -17,20 +16,9 @@ export const Route = createFileRoute('/_authenticated')({
 
     return { userId };
   },
-  component: AuthenticatedLayout,
+  loader: async ({ context }) => {
+    // Preload user data for all authenticated routes - prevents layout shift
+    await context.queryClient.ensureQueryData(convexQuery(api.myFunctions.getUser, {}));
+  },
+  component: () => <Outlet />,
 });
-
-function AuthenticatedLayout() {
-  const syncCurrentUser = useMutation(api.users.syncCurrentUser);
-  const hasSynced = useRef(false);
-
-  useEffect(() => {
-    // Sync user data on first render after authentication
-    if (!hasSynced.current) {
-      hasSynced.current = true;
-      syncCurrentUser().catch(console.error);
-    }
-  }, [syncCurrentUser]);
-
-  return <Outlet />;
-}

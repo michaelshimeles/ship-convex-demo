@@ -99,6 +99,8 @@
 /* Base styles */
 html {
   color-scheme: light;
+  /* Always show scrollbar to prevent layout shift */
+  overflow-y: scroll;
 }
 
 body {

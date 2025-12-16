@@ -1,17 +1,24 @@
 import { convexQuery } from '@convex-dev/react-query';
 import { useSuspenseQuery } from '@tanstack/react-query';
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute, Link, redirect } from '@tanstack/react-router';
 import { api } from '../../../../convex/_generated/api';
 import { Layout } from '../../../components/Layout';
 
 export const Route = createFileRoute('/_authenticated/dashboard/')({
   loader: async ({ context }) => {
+    // Check admin status first
+    const isAdmin = await context.queryClient.ensureQueryData(convexQuery(api.admin.isAdmin, {}));
+    
+    // Redirect non-admins to profile
+    if (!isAdmin) {
+      throw redirect({ to: '/profile' });
+    }
+
     await Promise.all([
       context.queryClient.ensureQueryData(convexQuery(api.items.getItemCounts, {})),
       context.queryClient.ensureQueryData(convexQuery(api.events.getEventCount, {})),
       context.queryClient.ensureQueryData(convexQuery(api.admin.getUserCount, {})),
       context.queryClient.ensureQueryData(convexQuery(api.devLogs.getRecentActivity, { limit: 5 })),
-      context.queryClient.ensureQueryData(convexQuery(api.admin.isAdmin, {})),
       context.queryClient.ensureQueryData(convexQuery(api.myFunctions.getUser, {})),
     ]);
   },
@@ -32,9 +39,9 @@ function DashboardPage() {
         {/* Page Header */}
         <div className="mb-8">
           <h1 className="text-[28px] font-semibold text-neutral-900 tracking-[-0.02em] mb-2">
-            Dashboard
+            Admin
           </h1>
-          <p className="text-[15px] text-neutral-500">Overview of your application</p>
+          <p className="text-[15px] text-neutral-500">System overview and management</p>
         </div>
 
         {/* Stats Grid */}
@@ -140,12 +147,7 @@ function DashboardPage() {
             <div className="px-5 py-4 border-b border-neutral-100">
               <h2 className="text-[15px] font-medium text-neutral-900">Quick Actions</h2>
             </div>
-            <div className="p-5 space-y-2">
-              <ActionButton
-                icon="plus"
-                label="Create new item"
-                href="/items"
-              />
+            <div className="p-2">
               <ActionButton
                 icon="list"
                 label="View all items"

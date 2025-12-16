@@ -27,12 +27,14 @@ export const authKit = {
 /**
  * Sync the current authenticated user to the database
  * Call this after authentication to ensure user data is stored
+ * Only updates fields if identity has real values (not empty/defaults)
  */
 export const syncCurrentUser = mutation({
   args: {},
   returns: v.union(v.id('users'), v.null()),
   handler: async (ctx) => {
     const user = await authKit.getAuthUser(ctx)
+
     if (!user) return null
 
     // Check if user already exists
@@ -42,12 +44,33 @@ export const syncCurrentUser = mutation({
       .unique()
 
     if (existingUser) {
-      // Update existing user with latest data
-      await ctx.db.patch(existingUser._id, {
-        email: user.email,
-        name: user.name,
-        avatarImage: user.avatarImage,
-      })
+      // Only update fields if identity has real values (not empty/defaults)
+      const updates: Partial<{
+        email: string
+        name: string
+        avatarImage: string
+      }> = {}
+
+      // Only update if identity has a real email (not empty)
+      if (user.email && user.email.length > 0) {
+        updates.email = user.email
+      }
+
+      // Only update if identity has a real name (not the default 'User')
+      if (user.name && user.name !== 'User') {
+        updates.name = user.name
+      }
+
+      // Only update if identity has a real avatar (not dicebear default)
+      if (user.avatarImage && !user.avatarImage.includes('dicebear.com')) {
+        updates.avatarImage = user.avatarImage
+      }
+
+      // Only patch if we have real updates
+      if (Object.keys(updates).length > 0) {
+        await ctx.db.patch(existingUser._id, updates)
+      }
+
       return existingUser._id
     }
 
@@ -148,6 +171,8 @@ export const getCurrentUser = query({
   args: {},
   handler: async (ctx) => {
     const authUser = await authKit.getAuthUser(ctx)
+
+    console.log("authUser", authUser);
     if (!authUser) return null
 
     const user = await ctx.db

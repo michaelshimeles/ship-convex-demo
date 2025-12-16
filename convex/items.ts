@@ -136,7 +136,7 @@ export const createItem = mutation({
 
     const number = await getNextItemNumber(ctx)
 
-    return await ctx.db.insert('items', {
+    const itemId = await ctx.db.insert('items', {
       number,
       title: args.title,
       description: args.description,
@@ -145,6 +145,15 @@ export const createItem = mutation({
       dueDate: undefined,
       createdBy: user._id,
     })
+
+    // Automatically place a bid for the creator (their creation cost becomes their investment)
+    await ctx.db.insert('bids', {
+      itemId,
+      userId: user._id,
+      amount: ITEM_CREATION_COST,
+    })
+
+    return itemId
   },
 })
 
