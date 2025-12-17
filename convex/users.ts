@@ -27,43 +27,65 @@ export const authKit = {
 /**
  * Sync the current authenticated user to the database
  * Call this after authentication to ensure user data is stored
- * Only updates fields if identity has real values (not empty/defaults)
+ * Accepts user profile data from WorkOS session (which has email, name, etc.)
  */
 export const syncCurrentUser = mutation({
-  args: {},
+  args: {
+    // User profile from WorkOS session (has the actual user data)
+    profile: v.optional(v.object({
+      id: v.string(),
+      email: v.string(),
+      firstName: v.union(v.string(), v.null()),
+      lastName: v.union(v.string(), v.null()),
+      profilePictureUrl: v.union(v.string(), v.null()),
+    })),
+  },
   returns: v.union(v.id('users'), v.null()),
-  handler: async (ctx) => {
-    const user = await authKit.getAuthUser(ctx)
+  handler: async (ctx, args) => {
+    // First verify the user is authenticated
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) return null
 
-    if (!user) return null
+    // Use profile from args (from WorkOS session) or fall back to identity
+    const userId = args.profile?.id ?? identity.subject
+    const email = args.profile?.email ?? identity.email ?? ''
+    const firstName = args.profile?.firstName ?? null
+    const lastName = args.profile?.lastName ?? null
+    const joinedName = [firstName, lastName].filter(Boolean).join(' ')
+    const name = joinedName || 
+                 (identity.name ?? identity.nickname ?? email.split('@')[0]) || 
+                 'User'
+    const avatarImage = args.profile?.profilePictureUrl ?? 
+                        identity.pictureUrl ?? 
+                        `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}`
 
     // Check if user already exists
     const existingUser = await ctx.db
       .query('users')
-      .withIndex('by_identifier', (q) => q.eq('identifier', user.id))
+      .withIndex('by_identifier', (q) => q.eq('identifier', userId))
       .unique()
 
     if (existingUser) {
-      // Only update fields if identity has real values (not empty/defaults)
+      // Update with real values from profile
       const updates: Partial<{
         email: string
         name: string
         avatarImage: string
       }> = {}
 
-      // Only update if identity has a real email (not empty)
-      if (user.email && user.email.length > 0) {
-        updates.email = user.email
+      // Update email if we have a real one
+      if (email && email.length > 0) {
+        updates.email = email
       }
 
-      // Only update if identity has a real name (not the default 'User')
-      if (user.name && user.name !== 'User') {
-        updates.name = user.name
+      // Update name if we have a real one
+      if (name && name !== 'User') {
+        updates.name = name
       }
 
-      // Only update if identity has a real avatar (not dicebear default)
-      if (user.avatarImage && !user.avatarImage.includes('dicebear.com')) {
-        updates.avatarImage = user.avatarImage
+      // Update avatar if we have a real one (not dicebear)
+      if (avatarImage && !avatarImage.includes('dicebear.com')) {
+        updates.avatarImage = avatarImage
       }
 
       // Only patch if we have real updates
@@ -76,10 +98,10 @@ export const syncCurrentUser = mutation({
 
     // Create new user with default role and 100 chips
     return await ctx.db.insert('users', {
-      identifier: user.id,
-      email: user.email,
-      name: user.name,
-      avatarImage: user.avatarImage,
+      identifier: userId,
+      email: email,
+      name: name,
+      avatarImage: avatarImage,
       role: 'user',
       chips: 100,
     })

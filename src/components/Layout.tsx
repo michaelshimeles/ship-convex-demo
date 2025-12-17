@@ -1,7 +1,9 @@
-import { Link, useLocation } from '@tanstack/react-router';
-import { getSignInUrl } from '@workos/authkit-tanstack-react-start';
+import { Link, useLocation, getRouteApi } from '@tanstack/react-router';
 import { useAuth } from '@workos/authkit-tanstack-react-start/client';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+
+// Get the root route API to access its loader data
+const rootRoute = getRouteApi('__root__');
 
 interface LayoutProps {
   children: ReactNode;
@@ -16,9 +18,13 @@ interface LayoutProps {
 }
 
 export function Layout({ children, user, isLoading }: LayoutProps) {
+  // Get signInUrl from the root route's loader data
+  const rootData = rootRoute.useLoaderData() as { signInUrl?: string | null } | undefined;
+  const signInUrl = rootData?.signInUrl;
+
   return (
     <div className="min-h-screen bg-[#fafafa]">
-      <Navbar user={user} isLoading={isLoading} />
+      <Navbar user={user} isLoading={isLoading} signInUrl={signInUrl} />
       <main className="pt-14 min-h-[calc(100vh-3.5rem)]">{children}</main>
     </div>
   );
@@ -27,6 +33,7 @@ export function Layout({ children, user, isLoading }: LayoutProps) {
 function Navbar({
   user,
   isLoading,
+  signInUrl,
 }: {
   user?: {
     name?: string | null;
@@ -36,11 +43,13 @@ function Navbar({
     role?: 'admin' | 'user';
   } | null;
   isLoading?: boolean;
+  signInUrl?: string | null;
 }) {
   const location = useLocation();
 
   const isActive = (path: string) => location.pathname === path;
   const isAdmin = user?.role === 'admin';
+
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 h-14 border-b border-neutral-200 bg-white">
@@ -104,16 +113,15 @@ function Navbar({
             <ProfileSkeleton />
           ) : user ? (
             <ProfileDropdown user={user} />
-          ) : (
-            <button
-              onClick={async () => {
-                const url = await getSignInUrl({ data: { returnPathname: location.pathname } });
-                window.location.href = url;
-              }}
+          ) : signInUrl ? (
+            <a
+              href={signInUrl}
               className="h-8 px-4 text-[13px] font-medium text-white bg-neutral-900 hover:bg-neutral-800 rounded-md transition-colors flex items-center"
             >
               Log in
-            </button>
+            </a>
+          ) : (
+            <div className="h-8 w-16 bg-neutral-200 rounded-md animate-pulse" />
           )}
 
           {/* GitHub icon */}

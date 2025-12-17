@@ -1,8 +1,11 @@
 import { convexQuery } from '@convex-dev/react-query';
 import { useSuspenseQuery } from '@tanstack/react-query';
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute, Link, getRouteApi } from '@tanstack/react-router';
 import { api } from '../../convex/_generated/api';
 import { Layout } from '../components/Layout';
+import { UserSync } from '../components/UserSync';
+
+const rootRoute = getRouteApi('__root__');
 
 export const Route = createFileRoute('/')({
   component: Home,
@@ -12,11 +15,27 @@ export const Route = createFileRoute('/')({
   },
 });
 
+interface UserProfile {
+  id: string;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  profilePictureUrl: string | null;
+}
+
+interface RootLoaderData {
+  userId?: string | null;
+  userProfile?: UserProfile | null;
+}
+
 function Home() {
   const { data: user } = useSuspenseQuery(convexQuery(api.myFunctions.getUser, {}));
+  const rootData = rootRoute.useLoaderData() as RootLoaderData | undefined;
 
   return (
     <Layout user={user ? { name: user.name, email: user.email, pictureUrl: user.pictureUrl, chips: user.chips, role: user.role } : null}>
+      {/* Sync user to Convex if authenticated but not in database */}
+      {rootData?.userId && !user && <UserSync profile={rootData.userProfile} />}
       <div className="max-w-6xl mx-auto px-6 py-20">
         {/* Hero */}
         <div className="mb-12">

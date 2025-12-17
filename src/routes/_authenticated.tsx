@@ -1,24 +1,25 @@
 import { Outlet, createFileRoute, redirect } from '@tanstack/react-router';
-import { getSignInUrl } from '@workos/authkit-tanstack-react-start';
+import { getAuth, getSignInUrl } from '@workos/authkit-tanstack-react-start';
 import { convexQuery } from '@convex-dev/react-query';
 import { api } from '../../convex/_generated/api';
 
 export const Route = createFileRoute('/_authenticated')({
-  beforeLoad: async ({ context, location }) => {
-    // Use the cached auth from root context - no additional server round-trip
-    const { userId } = context;
+  loader: async ({ context, location }) => {
+    // Check auth on the server side
+    const auth = await getAuth();
 
-    if (!userId) {
-      // Only make server call when we actually need to redirect
-      const href = await getSignInUrl({ data: { returnPathname: location.pathname } });
-      throw redirect({ href });
+    if (!auth.user) {
+      // Redirect directly to WorkOS sign-in with return path
+      const signInUrl = await getSignInUrl({
+        data: { returnPathname: location.pathname },
+      });
+      throw redirect({ href: signInUrl });
     }
 
-    return { userId };
-  },
-  loader: async ({ context }) => {
     // Preload user data for all authenticated routes - prevents layout shift
     await context.queryClient.ensureQueryData(convexQuery(api.myFunctions.getUser, {}));
+    
+    return { userId: auth.user.id };
   },
   component: () => <Outlet />,
 });
