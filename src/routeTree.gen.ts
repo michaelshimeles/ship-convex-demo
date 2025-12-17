@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SignOutRouteImport } from './routes/sign-out'
 import { Route as CallbackRouteImport } from './routes/callback'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
@@ -22,6 +23,11 @@ import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authentic
 import { Route as AuthenticatedItemsNewRouteImport } from './routes/_authenticated/items/new'
 import { Route as AuthenticatedItemsItemIdRouteImport } from './routes/_authenticated/items/$itemId'
 
+const SignOutRoute = SignOutRouteImport.update({
+  id: '/sign-out',
+  path: '/sign-out',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CallbackRoute = CallbackRouteImport.update({
   id: '/callback',
   path: '/callback',
@@ -89,6 +95,7 @@ const AuthenticatedItemsItemIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/callback': typeof CallbackRoute
+  '/sign-out': typeof SignOutRoute
   '/authenticated': typeof AuthenticatedAuthenticatedRoute
   '/changelog/$slug': typeof ChangelogSlugRoute
   '/changelog': typeof ChangelogIndexRoute
@@ -102,6 +109,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/callback': typeof CallbackRoute
+  '/sign-out': typeof SignOutRoute
   '/authenticated': typeof AuthenticatedAuthenticatedRoute
   '/changelog/$slug': typeof ChangelogSlugRoute
   '/changelog': typeof ChangelogIndexRoute
@@ -117,6 +125,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/callback': typeof CallbackRoute
+  '/sign-out': typeof SignOutRoute
   '/_authenticated/authenticated': typeof AuthenticatedAuthenticatedRoute
   '/changelog/$slug': typeof ChangelogSlugRoute
   '/changelog/': typeof ChangelogIndexRoute
@@ -132,6 +141,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/callback'
+    | '/sign-out'
     | '/authenticated'
     | '/changelog/$slug'
     | '/changelog'
@@ -145,6 +155,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/callback'
+    | '/sign-out'
     | '/authenticated'
     | '/changelog/$slug'
     | '/changelog'
@@ -159,6 +170,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/callback'
+    | '/sign-out'
     | '/_authenticated/authenticated'
     | '/changelog/$slug'
     | '/changelog/'
@@ -174,12 +186,20 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   CallbackRoute: typeof CallbackRoute
+  SignOutRoute: typeof SignOutRoute
   ChangelogSlugRoute: typeof ChangelogSlugRoute
   ChangelogIndexRoute: typeof ChangelogIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/sign-out': {
+      id: '/sign-out'
+      path: '/sign-out'
+      fullPath: '/sign-out'
+      preLoaderRoute: typeof SignOutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/callback': {
       id: '/callback'
       path: '/callback'
@@ -295,6 +315,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   CallbackRoute: CallbackRoute,
+  SignOutRoute: SignOutRoute,
   ChangelogSlugRoute: ChangelogSlugRoute,
   ChangelogIndexRoute: ChangelogIndexRoute,
 }

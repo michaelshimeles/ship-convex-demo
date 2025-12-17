@@ -1,5 +1,4 @@
 import { Link, useLocation, getRouteApi } from '@tanstack/react-router';
-import { useAuth } from '@workos/authkit-tanstack-react-start/client';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 // Get the root route API to access its loader data
@@ -186,7 +185,7 @@ function ProfileDropdown({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const { signOut } = useAuth();
+  // useAuth hook no longer needed for signOut - using route-based sign out
   const isAdmin = user.role === 'admin';
 
   useEffect(() => {
@@ -308,12 +307,9 @@ function ProfileDropdown({
 
           {/* Sign out */}
           <div className="border-t border-neutral-100 pt-1 mt-1">
-            <button
-              onClick={async () => {
-                setIsOpen(false);
-                // Use signOut from useAuth which properly handles the redirect
-                await signOut();
-              }}
+            <a
+              href="/sign-out"
+              onClick={() => setIsOpen(false)}
               className="flex items-center gap-3 w-full px-4 py-2 text-[13px] text-red-600 hover:bg-red-50 transition-colors"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -325,7 +321,7 @@ function ProfileDropdown({
                 />
               </svg>
               Sign out
-            </button>
+            </a>
           </div>
         </div>
       )}
